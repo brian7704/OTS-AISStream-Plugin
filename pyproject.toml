@@ -1,0 +1,37 @@
+[project]
+name = "ots-plugin-template"
+version = "0.0.0"
+description = "Plugin template for OpenTAKServer plugins"
+authors = [{name = "OpenTAKServer", email = "opentakserver@gmail.com"}]
+readme = "README.md"
+license = "GPL-3.0-or-later"
+repository = "https://github.com/brian7704/OpenTAKServer"
+documentation = "https://docs.opentakserver.io"
+dynamic = ["entry-points"]
+#packages = [{include = "ots_plugin_template"}, {include = "ots_plugin_template/**/*.py"}]
+
+[tool.poetry.dependencies]
+opentakserver = "*"
+python = ">=3.10, <4.0"
+
+[tool.poetry-dynamic-versioning]
+enable = true
+vcs = "git"
+style = "semver"
+dirty = false
+pattern = "((?P<epoch>\\d+)!)?(?P<base>\\d+(\\.\\d+)*)"
+
+[tool.poetry-dynamic-versioning.files."ots_plugin_template/__init__.py"] # Change this line
+persistent-substitution = true
+initial-content = """
+  # These version placeholders will be replaced later during substitution.
+  __version__ = "0.0.0"
+  __version_tuple__ = (0, 0, 0)
+"""
+
+[build-system]
+requires = ["poetry-core>=2.0.0", "poetry-dynamic-versioning>=1.0.0,<2.0.0"]
+build-backend = "poetry_dynamic_versioning.backend"
+
+[project.entry-points.'opentakserver.plugin']
+ots_plugin_template = 'ots_plugin_template.app:PluginTemplate'

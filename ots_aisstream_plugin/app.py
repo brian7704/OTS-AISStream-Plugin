@@ -1,23 +1,27 @@
 import os
+import threading
 import traceback
 
 import yaml
 from flask import Blueprint, render_template, jsonify, Flask
 from opentakserver.plugins.Plugin import Plugin
 from opentakserver.extensions import *
+
+from .WebsocketWrapper import WebsocketWrapper
 from .default_config import DefaultConfig
 import importlib.metadata
 
 
-class PluginTemplate(Plugin):
+class AISStreamPlugin(Plugin):
     # Use a URL prefix of "/api/your_plugin_name" and change the Blueprint name to YourPluginBlueprint
-    blueprint = Blueprint("PluginTemplateBlueprint", __name__, url_prefix="/api/plugins/plugin_template", template_folder="templates")
+    blueprint = Blueprint("AISStreamPlugin", __name__, url_prefix="/api/plugins/ais_stream_plugin", template_folder="templates")
 
     def __init__(self):
         self._app: Flask | None = None
         self._config = {}
         self._metadata = {}
         self._name = ""
+        self._websocket_wrapper = WebsocketWrapper()
 
     def activate(self, app: Flask):
         self._app = app
@@ -25,7 +29,12 @@ class PluginTemplate(Plugin):
         self._load_metadata()
 
         try:
-            # Do stuff here
+            _ws_thread = threading.Thread(
+                target=self._websocket_wrapper.ws_thread,
+                kwargs={"url": "wss://stream.aisstream.io/v0/stream", "config": self._config},
+            )
+            _ws_thread.start()
+
             logger.info(f"Successfully Loaded {self._name}")
         except BaseException as e:
             logger.error(f"Failed to load {self._name}: {e}")
@@ -67,8 +76,7 @@ class PluginTemplate(Plugin):
             logger.error(e)
 
     def stop(self):
-        # Shut down your plugin gracefully here
-        pass
+        self._websocket_wrapper.stop()
 
     # Make route methods static to avoid "no-self-use" errors
     @staticmethod
@@ -97,4 +105,3 @@ class PluginTemplate(Plugin):
     @blueprint.route("/ui")
     def ui():
         return render_template("index.html")
-

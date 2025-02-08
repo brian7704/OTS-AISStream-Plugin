@@ -1,18 +1,19 @@
 [project]
-name = "ots-plugin-template"
+name = "OTS-AISStream-Plugin"
 version = "0.0.0"
-description = "Plugin template for OpenTAKServer plugins"
+description = "AISStream pluging for OpenTAKSserver"
 authors = [{name = "OpenTAKServer", email = "opentakserver@gmail.com"}]
 readme = "README.md"
 license = "GPL-3.0-or-later"
 repository = "https://github.com/brian7704/OpenTAKServer"
 documentation = "https://docs.opentakserver.io"
 dynamic = ["entry-points"]
-#packages = [{include = "ots_plugin_template"}, {include = "ots_plugin_template/**/*.py"}]
+#packages = [{include = "ots_aisstream_plugin"}, {include = "ots_aisstream_plugin/**/*.py"}]
 
 [tool.poetry.dependencies]
 opentakserver = "*"
 python = ">=3.10, <4.0"
+websocket-client = "1.8.0"
 
 [tool.poetry-dynamic-versioning]
 enable = true
@@ -21,7 +22,7 @@ style = "semver"
 dirty = false
 pattern = "((?P<epoch>\\d+)!)?(?P<base>\\d+(\\.\\d+)*)"
 
-[tool.poetry-dynamic-versioning.files."ots_plugin_template/__init__.py"] # Change this line
+[tool.poetry-dynamic-versioning.files."ots_aisstream_plugin/__init__.py"] # Change this line
 persistent-substitution = true
 initial-content = """
   # These version placeholders will be replaced later during substitution.
@@ -34,4 +35,4 @@ requires = ["poetry-core>=2.0.0", "poetry-dynamic-versioning>=1.0.0,<2.0.0"]
 build-backend = "poetry_dynamic_versioning.backend"
 
 [project.entry-points.'opentakserver.plugin']
-ots_plugin_template = 'ots_plugin_template.app:PluginTemplate'
+ots_aisstream_plugin = 'ots_aisstream_plugin.app:AISStreamPlugin'

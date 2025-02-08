@@ -60,7 +60,6 @@ class AISStreamPlugin(Plugin):
         try:
             distribution = None
             distributions = importlib.metadata.packages_distributions()
-            logger.debug(distributions)
             for distro in distributions:
                 if str(__name__).startswith(distro):
                     distribution = distributions[distro][0]

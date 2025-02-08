@@ -1,7 +1,12 @@
+import datetime
 import json
+import uuid
 
+import opentakserver.functions
 from websocket import WebSocketApp
 from opentakserver.extensions import logger
+import aiscot
+from xml.etree.ElementTree import Element, SubElement
 
 
 class WebsocketWrapper:
@@ -12,6 +17,7 @@ class WebsocketWrapper:
 
     def on_message(self, web_sock: WebSocketApp, message: str) -> None:
         logger.info(f"Got message: {message}")
+        #logger.warning(aiscot.ais_to_cot(json.loads(message), None, None))
 
     def on_open(self, web_sock: WebSocketApp) -> None:
         logger.info("on_open")
@@ -43,3 +49,28 @@ class WebsocketWrapper:
                 on_error=self.on_error,
             )
             self._web_sock.run_forever()
+
+    def generate_cot(self, message: dict) -> None:
+        if message.get("MessageType") == "PositionReport":
+            now = opentakserver.functions.iso8601_string_from_datetime(datetime.datetime.now(datetime.timezone.utc))
+            stale = opentakserver.functions.iso8601_string_from_datetime(datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(seconds=10))
+
+            metadata = message.get("MetaData")
+            position_report = message.get("PositionReport")
+            if not metadata:
+                logger.debug("AISStream message doesn't include metadata")
+                return
+
+            lat = metadata.get("latitude") or "0.0"
+            lon = metadata.get("longitude") or "0.0"
+            mmsi = metadata.get("MMSI") or ""
+            ship_name = metadata.get("ShipName") or ""
+            try:
+                timestamp = datetime.datetime.strptime(metadata.get("time_utc"), "%Y-%m-%d %H:%M:%S.%f %z %Z")
+            except ValueError:
+                timestamp = opentakserver.functions.iso8601_string_from_datetime(datetime.datetime.now(datetime.timezone.utc))
+
+            event = Element("event", {'how': 'm-g', 'type': self._config.get("OTS_AISSTREAM_PLUGIN_COT_TYPE"),
+                                      "version": "2.0", "uid": str(uuid.uuid4()), "start": now, "stale": stale})
+            latitude = message.get("")
+            SubElement(event, "point", {"ce": "999999.0", "le": "999999.0", "hae": "999999.0", "lat": str(message.get(""))})

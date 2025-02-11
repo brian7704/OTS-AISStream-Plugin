@@ -1,6 +1,10 @@
+import dataclasses
 import os
+import pathlib
 import threading
 import traceback
+
+from dataclasses import dataclass
 
 import yaml
 from flask import Blueprint, render_template, jsonify, Flask
@@ -12,15 +16,14 @@ from .default_config import DefaultConfig
 import importlib.metadata
 
 
+@dataclass
 class AISStreamPlugin(Plugin):
-    # Use a URL prefix of "/api/your_plugin_name" and change the Blueprint name to YourPluginBlueprint
-    blueprint = Blueprint("AISStreamPlugin", __name__, url_prefix="/api/plugins/ais_stream_plugin", template_folder="templates")
+    # Change the Blueprint name to YourPluginBlueprint
+    url_prefix = f"/api/plugins/{pathlib.Path(__file__).resolve().parent.name}"
+    blueprint = Blueprint("AISStreamPlugin", __name__, url_prefix=url_prefix, template_folder="templates")
 
     def __init__(self):
-        self._app: Flask | None = None
-        self._config = {}
-        self._metadata = {}
-        self._name = ""
+        super().__init__()
         self._websocket_wrapper = WebsocketWrapper()
 
     def activate(self, app: Flask):
@@ -56,26 +59,27 @@ class AISStreamPlugin(Plugin):
                 if value:
                     self._config[key] = value
 
+    def stop(self):
+        self._websocket_wrapper.stop()
+
     def _load_metadata(self):
         try:
-            distribution = None
             distributions = importlib.metadata.packages_distributions()
             for distro in distributions:
                 if str(__name__).startswith(distro):
-                    distribution = distributions[distro][0]
+                    self._name = distributions[distro][0]
+                    self._distro = distro
+                    info = importlib.metadata.metadata(self._distro)
+                    self._metadata = info.json
                     break
 
-            if distribution:
-                info = importlib.metadata.metadata(distribution)
-                self._metadata = info.json
-                self._name = self._metadata.get("Name") or self._metadata.get("name")
-            else:
-                logger.error("Failed to get plugin name")
         except BaseException as e:
             logger.error(e)
 
-    def stop(self):
-        self._websocket_wrapper.stop()
+    def get_info(self):
+        self._load_metadata()
+        self.get_plugin_routes(self.url_prefix)
+        return {'name': self._name, 'distro': self._distro, 'routes': self._routes}
 
     # Make route methods static to avoid "no-self-use" errors
     @staticmethod

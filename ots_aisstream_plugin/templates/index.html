@@ -1,10 +1,16 @@
-{% extends 'base.html' %}
-
 {% block header %}
-  <h1>{% block title %}Example Flask Template{% endblock %}</h1>
+  <h1>{% block title %}{{plugin_name}}{% endblock %}</h1>
 {% endblock %}
 
 {% block content %}
-  Use this as an example if you want to use Flask templates to extend OpenTAKServer's Web UI. You can find more information
-  on Flask templates <a href="https://flask.palletsprojects.com/en/stable/tutorial/templates/">here.</a>
+  <h2>Details</h2>
+    <strong>Version:</strong> {{ metadata.version }} <br />
+    <strong>Summary:</strong> {{ metadata.summary }} <br />
+    <strong>Author:</strong> {{ metadata.author }} <br />
+    <strong>Author Email:</strong> <a href="mailto:{{  metadata.author_email }}">{{ metadata.author_email }}</a> <br />
+    <strong>Documentation:</strong> <a href={{ documentation_url }}> {{ documentation_url }}</a> <br />
+    <strong>Repo:</strong> {{ repo_url }} <br />
+    <strong>License:</strong> {{ metadata.license }} <br />
+    <hr />
+    {{ readme|safe }}
 {% endblock %}

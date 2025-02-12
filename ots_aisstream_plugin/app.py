@@ -1,4 +1,3 @@
-import dataclasses
 import os
 import pathlib
 import threading
@@ -6,8 +5,9 @@ import traceback
 
 from dataclasses import dataclass
 
+import mistune
 import yaml
-from flask import Blueprint, render_template, jsonify, Flask
+from flask import Blueprint, render_template, jsonify, Flask, current_app as app
 from opentakserver.plugins.Plugin import Plugin
 from opentakserver.extensions import *
 
@@ -50,6 +50,7 @@ class AISStreamPlugin(Plugin):
         for key in dir(DefaultConfig):
             if key.isupper():
                 self._config[key] = getattr(DefaultConfig, key)
+                self._app.config.update({key: getattr(DefaultConfig, key)})
 
         # Get user overrides from config.yml
         with open(os.path.join(self._app.config.get("OTS_DATA_FOLDER"), "config.yml")) as yaml_file:
@@ -58,6 +59,7 @@ class AISStreamPlugin(Plugin):
                 value = yaml_config.get(key)
                 if value:
                     self._config[key] = value
+                    self._app.config.update({key: value})
 
     def stop(self):
         self._websocket_wrapper.stop()
@@ -107,4 +109,43 @@ class AISStreamPlugin(Plugin):
     @staticmethod
     @blueprint.route("/ui")
     def ui():
-        return render_template("index.html")
+        name = ""
+        readme = ""
+        documentation_link = ""
+        repo_link = ""
+        metadata = {}
+
+        distributions = importlib.metadata.packages_distributions()
+        for distro in distributions:
+            if str(__name__).startswith(distro):
+                name = distributions[distro][0]
+                metadata = importlib.metadata.metadata(distro).json
+                if metadata.get("project_url"):
+                    for url in metadata["project_url"]:
+                        try:
+                            url = url.split(",")
+                            if url[0].lower() == "documentation":
+                                documentation_link = url[1]
+                            elif url[0].lower() == "repository":
+                                repo_link = url[1]
+                        except Exception as e:
+                            logger.error(f"Failed to get plugin URLs: {e}")
+
+                if metadata.get("description_content_type") == "text/markdown":
+                    readme = mistune.html(metadata.get("description"))
+                else:
+                    readme = metadata.get("description")
+
+        return render_template("index.html", plugin_name=name, metadata=metadata, readme=readme,
+                               doumentation_link=documentation_link, repo_link=repo_link)
+
+    @staticmethod
+    @blueprint.route("/config")
+    def config():
+        config = {}
+
+        for key in dir(DefaultConfig):
+            if key.isupper():
+                config[key] = app.config.get(key)
+
+        return jsonify(config)

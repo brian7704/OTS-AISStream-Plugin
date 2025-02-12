@@ -137,7 +137,7 @@ class AISStreamPlugin(Plugin):
                     readme = metadata.get("description")
 
         return render_template("index.html", plugin_name=name, metadata=metadata, readme=readme,
-                               doumentation_link=documentation_link, repo_link=repo_link)
+                               documentation_link=documentation_link, repo_link=repo_link)
 
     @staticmethod
     @blueprint.route("/config")

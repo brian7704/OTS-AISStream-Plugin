@@ -8,8 +8,8 @@
     <strong>Summary:</strong> {{ metadata.summary }} <br />
     <strong>Author:</strong> {{ metadata.author }} <br />
     <strong>Author Email:</strong> <a href="mailto:{{  metadata.author_email }}">{{ metadata.author_email }}</a> <br />
-    <strong>Documentation:</strong> <a href={{ documentation_url }}> {{ documentation_url }}</a> <br />
-    <strong>Repo:</strong> {{ repo_url }} <br />
+    <strong>Documentation:</strong> <a href="{{ documentation_link }}"> {{ documentation_link }}</a> <br />
+    <strong>Repo:</strong> <a href="{{ repo_link }}">{{ repo_link }}</a> <br />
     <strong>License:</strong> {{ metadata.license }} <br />
     <hr />
     {{ readme|safe }}

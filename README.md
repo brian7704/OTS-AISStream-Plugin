@@ -1,6 +1,6 @@
 # OTS-AISStream-Plugin
 
-![oil tanker](oil_tanker.jpg)
+![oil tanker](https://github.com/brian7704/OTS-AISStream-Plugin/blob/main/oil_tanker.jpg?raw=true)
 
 ## About
 

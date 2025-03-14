@@ -7,7 +7,7 @@ from dataclasses import dataclass
 
 import mistune
 import yaml
-from flask import Blueprint, render_template, jsonify, Flask, current_app as app, request
+from flask import Blueprint, render_template, send_from_directory, jsonify, Flask, current_app as app, request
 from opentakserver.plugins.Plugin import Plugin
 from opentakserver.extensions import *
 
@@ -136,8 +136,23 @@ class AISStreamPlugin(Plugin):
                 else:
                     readme = metadata.get("description")
 
-        return render_template("index.html", plugin_name=name, metadata=metadata, readme=readme,
-                               documentation_link=documentation_link, repo_link=repo_link)
+        #return render_template("index.html", plugin_name=name, metadata=metadata, readme=readme,
+        #                       documentation_link=documentation_link, repo_link=repo_link)
+        logger.warning(f"Root path: {app.root_path}")
+        logger.warning(f"../{pathlib.Path(__file__).resolve().parent.name}/dist/index.html")
+        return send_from_directory(f"../{pathlib.Path(__file__).resolve().parent.name}/dist", "index.html", as_attachment=False)
+
+    @staticmethod
+    @blueprint.route('/assets/<file_name>')
+    def serve(file_name):
+        logger.debug(f"Path: {file_name}")
+        dist = f"../{pathlib.Path(__file__).parent.resolve().name}/dist/assets"
+        logger.warning(os.path.join(pathlib.Path(__file__).parent.resolve(), "dist", "assets", file_name))
+        if file_name != "" and os.path.exists(os.path.join(pathlib.Path(__file__).parent.resolve(), "dist", "assets", file_name)):
+            logger.info(f"Serving {file_name}")
+            return send_from_directory(dist, file_name)
+        else:
+            return send_from_directory(dist, 'index.html')
 
     @staticmethod
     @blueprint.route("/config")

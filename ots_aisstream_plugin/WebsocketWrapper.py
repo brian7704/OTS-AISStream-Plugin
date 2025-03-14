@@ -16,8 +16,9 @@ class WebsocketWrapper:
         self._shutdown = False
 
     def on_message(self, web_sock: WebSocketApp, message: str) -> None:
-        logger.info(f"Got message: {message}")
+        #logger.info(f"Got message: {message}")
         #logger.warning(aiscot.ais_to_cot(json.loads(message), None, None))
+        return
 
     def on_open(self, web_sock: WebSocketApp) -> None:
         logger.info("on_open")

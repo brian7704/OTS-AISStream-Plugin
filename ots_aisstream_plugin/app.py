@@ -7,7 +7,7 @@ from dataclasses import dataclass
 
 import mistune
 import yaml
-from flask import Blueprint, render_template, jsonify, Flask, current_app as app
+from flask import Blueprint, render_template, jsonify, Flask, current_app as app, request
 from opentakserver.plugins.Plugin import Plugin
 from opentakserver.extensions import *
 
@@ -149,3 +149,17 @@ class AISStreamPlugin(Plugin):
                 config[key] = app.config.get(key)
 
         return jsonify(config)
+
+    @staticmethod
+    @blueprint.route("/config", methods=["POST"])
+    def update_config():
+        try:
+            result = DefaultConfig.update_config(request.json)
+            if result["success"]:
+                return jsonify(result)
+            else:
+                return jsonify(result), 400
+        except BaseException as e:
+            logger.error("Failed to update config:" + str(e))
+            logger.error(traceback.format_exc())
+            return jsonify({"success": False, "error": str(e)}), 400

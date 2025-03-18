@@ -5,9 +5,8 @@ import traceback
 
 from dataclasses import dataclass
 
-import mistune
 import yaml
-from flask import Blueprint, render_template, send_from_directory, jsonify, Flask, current_app as app, request
+from flask import Blueprint, send_from_directory, jsonify, Flask, current_app as app, request
 from opentakserver.plugins.Plugin import Plugin
 from opentakserver.extensions import *
 
@@ -28,7 +27,7 @@ class AISStreamPlugin(Plugin):
 
     def activate(self, app: Flask):
         self._app = app
-        self._load_config()
+        self._load_config(DefaultConfig)
         self._load_metadata()
 
         try:
@@ -43,40 +42,8 @@ class AISStreamPlugin(Plugin):
             logger.error(f"Failed to load {self._name}: {e}")
             logger.error(traceback.format_exc())
 
-    # Loads default config and user config from ~/ots/config.yml
-    # In most cases you don't need to change this
-    def _load_config(self):
-        # Gets default config key/value pairs from default_config.py
-        for key in dir(DefaultConfig):
-            if key.isupper():
-                self._config[key] = getattr(DefaultConfig, key)
-                self._app.config.update({key: getattr(DefaultConfig, key)})
-
-        # Get user overrides from config.yml
-        with open(os.path.join(self._app.config.get("OTS_DATA_FOLDER"), "config.yml")) as yaml_file:
-            yaml_config = yaml.safe_load(yaml_file)
-            for key in self._config.keys():
-                value = yaml_config.get(key)
-                if value:
-                    self._config[key] = value
-                    self._app.config.update({key: value})
-
     def stop(self):
         self._websocket_wrapper.stop()
-
-    def _load_metadata(self):
-        try:
-            distributions = importlib.metadata.packages_distributions()
-            for distro in distributions:
-                if str(__name__).startswith(distro):
-                    self._name = distributions[distro][0]
-                    self._distro = distro
-                    info = importlib.metadata.metadata(self._distro)
-                    self._metadata = info.json
-                    break
-
-        except BaseException as e:
-            logger.error(e)
 
     def get_info(self):
         self._load_metadata()
@@ -109,35 +76,6 @@ class AISStreamPlugin(Plugin):
     @staticmethod
     @blueprint.route("/ui")
     def ui():
-        name = ""
-        readme = ""
-        documentation_link = ""
-        repo_link = ""
-        metadata = {}
-
-        distributions = importlib.metadata.packages_distributions()
-        for distro in distributions:
-            if str(__name__).startswith(distro):
-                name = distributions[distro][0]
-                metadata = importlib.metadata.metadata(distro).json
-                if metadata.get("project_url"):
-                    for url in metadata["project_url"]:
-                        try:
-                            url = url.split(",")
-                            if url[0].lower() == "documentation":
-                                documentation_link = url[1]
-                            elif url[0].lower() == "repository":
-                                repo_link = url[1]
-                        except Exception as e:
-                            logger.error(f"Failed to get plugin URLs: {e}")
-
-                if metadata.get("description_content_type") == "text/markdown":
-                    readme = mistune.html(metadata.get("description"))
-                else:
-                    readme = metadata.get("description")
-
-        #return render_template("index.html", plugin_name=name, metadata=metadata, readme=readme,
-        #                       documentation_link=documentation_link, repo_link=repo_link)
         logger.warning(f"Root path: {app.root_path}")
         logger.warning(f"../{pathlib.Path(__file__).resolve().parent.name}/dist/index.html")
         return send_from_directory(f"../{pathlib.Path(__file__).resolve().parent.name}/dist", "index.html", as_attachment=False)

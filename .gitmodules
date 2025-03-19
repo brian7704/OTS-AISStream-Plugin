@@ -1,0 +1,3 @@
+[submodule "ui"]
+	path = ui
+	url = https://github.com/brian7704/OTS-AISStream-Plugin-UI.git

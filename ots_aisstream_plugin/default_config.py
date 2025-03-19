@@ -32,9 +32,10 @@ class DefaultConfig:
                 elif key == "OTS_AISSTREAM_PLUGIN_BBOX":
                     if type(value) is not list or len(value) == 0:
                         return {"success": False, "error": f"{key} must be a non-empty list"}
-                elif key == "OTS_AISSTREAM_PLUGIN_COT_TYPE":
+                elif key == "OTS_AISSTREAM_PLUGIN_COT_STALE_TIME":
                     if type(value) is not int or value < 0:
                         return {"success": False, "error": f"{key} must be a non-negative integer"}
+
 
             return {"success": True, "error": ""}
 

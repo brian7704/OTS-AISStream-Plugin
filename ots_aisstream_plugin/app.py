@@ -42,6 +42,38 @@ class AISStreamPlugin(Plugin):
             logger.error(f"Failed to load {self._name}: {e}")
             logger.error(traceback.format_exc())
 
+    def _load_metadata(self):
+        try:
+            distributions = importlib.metadata.packages_distributions()
+            for distro in distributions:
+                if str(__name__).startswith(distro):
+                    self._name = distributions[distro][0]
+                    self._distro = distro
+                    info = importlib.metadata.metadata(self._distro)
+                    self._metadata = info.json
+                    break
+
+        except BaseException as e:
+            logger.error(e)
+
+    # Loads default config and user config from ~/ots/config.yml
+    # In most cases you don't need to change this
+    def _load_config(self, DefaultConfig):
+        # Gets default config key/value pairs from the plugin's default_config.py
+        for key in dir(DefaultConfig):
+            if key.isupper():
+                self._config[key] = getattr(DefaultConfig, key)
+                self._app.config.update({key: getattr(DefaultConfig, key)})
+
+        # Get user overrides from config.yml
+        with open(os.path.join(self._app.config.get("OTS_DATA_FOLDER"), "config.yml")) as yaml_file:
+            yaml_config = yaml.safe_load(yaml_file)
+            for key in self._config.keys():
+                value = yaml_config.get(key)
+                if value:
+                    self._config[key] = value
+                    self._app.config.update({key: value})
+
     def stop(self):
         self._websocket_wrapper.stop()
 
@@ -109,6 +141,7 @@ class AISStreamPlugin(Plugin):
         try:
             result = DefaultConfig.update_config(request.json)
             if result["success"]:
+                DefaultConfig.update_config(request.json)
                 return jsonify(result)
             else:
                 return jsonify(result), 400

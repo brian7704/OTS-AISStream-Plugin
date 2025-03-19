@@ -1,5 +1,8 @@
+import os
 import traceback
 from dataclasses import dataclass
+
+import yaml
 from flask import current_app as app
 from opentakserver.extensions import logger
 
@@ -43,12 +46,26 @@ class DefaultConfig:
             return {"success": False, "error": str(e)}
 
     @staticmethod
-    def update_config(config:dict) -> dict:
+    def change_config_setting(setting, value):
+        try:
+            with open(os.path.join(app.config.get("OTS_DATA_FOLDER"), "config.yml"), "r") as config_file:
+                config = yaml.safe_load(config_file.read())
+
+            config[setting] = value
+            with open(os.path.join(app.config.get("OTS_DATA_FOLDER"), "config.yml"), "w") as config_file:
+                yaml.safe_dump(config, config_file)
+
+        except BaseException as e:
+            logger.error("Failed to change setting {} to {} in config.yml: {}".format(setting, value, e))
+
+    @staticmethod
+    def update_config(config: dict) -> dict:
         try:
             valid = DefaultConfig.validate(config)
             if valid["success"]:
                 for key, value in config.items():
                     app.config.update({key: value})
+                    DefaultConfig.change_config_setting(key, value)
                 return {"success": True}
             else:
                 return valid

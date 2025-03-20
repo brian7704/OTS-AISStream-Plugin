@@ -109,9 +109,7 @@ class AISStreamPlugin(Plugin):
     @staticmethod
     @blueprint.route("/ui")
     def ui():
-        logger.warning(f"Root path: {app.root_path}")
-        logger.warning(f"../{pathlib.Path(__file__).resolve().parent.name}/dist/index.html")
-        return send_from_directory(f"../{pathlib.Path(__file__).resolve().parent.name}/dist", "index.html", as_attachment=False)
+        return '', 200
 
     @staticmethod
     @blueprint.route('/assets/<file_name>')

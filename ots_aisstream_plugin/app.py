@@ -23,12 +23,13 @@ class AISStreamPlugin(Plugin):
 
     def __init__(self):
         super().__init__()
-        self._websocket_wrapper = WebsocketWrapper()
+        self._websocket_wrapper: WebsocketWrapper = None
 
     def activate(self, app: Flask):
         self._app = app
         self._load_config(DefaultConfig)
         self._load_metadata()
+        self._websocket_wrapper = WebsocketWrapper(app)
 
         try:
             _ws_thread = threading.Thread(

@@ -7,6 +7,7 @@ from dataclasses import dataclass
 
 import yaml
 from flask import Blueprint, send_from_directory, jsonify, Flask, current_app as app, request
+from flask_security import roles_accepted
 from opentakserver.plugins.Plugin import Plugin
 from opentakserver.extensions import *
 
@@ -19,16 +20,16 @@ import importlib.metadata
 class AISStreamPlugin(Plugin):
     # Change the Blueprint name to YourPluginBlueprint
     url_prefix = f"/api/plugins/{pathlib.Path(__file__).resolve().parent.name}"
-    blueprint = Blueprint("AISStreamPlugin", __name__, url_prefix=url_prefix, template_folder="templates")
+    blueprint = Blueprint("AISStreamPlugin", __name__, url_prefix=url_prefix)
 
     def __init__(self):
         super().__init__()
-        self._websocket_wrapper: WebsocketWrapper = None
+        self._websocket_wrapper: WebsocketWrapper | None = None
+        self.load_metadata()
 
-    def activate(self, app: Flask):
-        self._app = app
+    def activate(self, context: Flask):
+        self._app = context
         self._load_config(DefaultConfig)
-        self._load_metadata()
         self._websocket_wrapper = WebsocketWrapper(app)
 
         try:
@@ -38,19 +39,19 @@ class AISStreamPlugin(Plugin):
             )
             _ws_thread.start()
 
-            logger.info(f"Successfully Loaded {self._name}")
+            logger.info(f"Successfully Loaded {self.name}")
         except BaseException as e:
-            logger.error(f"Failed to load {self._name}: {e}")
+            logger.error(f"Failed to load {self.name}: {e}")
             logger.error(traceback.format_exc())
 
-    def _load_metadata(self):
+    def load_metadata(self):
         try:
             distributions = importlib.metadata.packages_distributions()
             for distro in distributions:
                 if str(__name__).startswith(distro):
-                    self._name = distributions[distro][0]
-                    self._distro = distro
-                    info = importlib.metadata.metadata(self._distro)
+                    self.name = distributions[distro][0]
+                    self.distro = distro
+                    info = importlib.metadata.metadata(self.distro)
                     self._metadata = info.json
                     break
 
@@ -79,12 +80,13 @@ class AISStreamPlugin(Plugin):
         self._websocket_wrapper.stop()
 
     def get_info(self):
-        self._load_metadata()
+        self.load_metadata()
         self.get_plugin_routes(self.url_prefix)
-        return {'name': self._name, 'distro': self._distro, 'routes': self._routes}
+        return {'name': self.name, 'distro': self.distro, 'routes': self.routes}
 
     # Make route methods static to avoid "no-self-use" errors
     @staticmethod
+    @roles_accepted("administrator")
     @blueprint.route("/")
     def plugin_info():  # Do not put "self" as a method parameter here
         # This method will return JSON with info about the plugin derived from pyproject.toml, please do not change it
@@ -107,11 +109,13 @@ class AISStreamPlugin(Plugin):
 
     # OpenTAKServer's web UI will call your plugin's /ui endpoint and display the results
     @staticmethod
+    @roles_accepted("administrator")
     @blueprint.route("/ui")
     def ui():
         return '', 200
 
     @staticmethod
+    @roles_accepted("administrator")
     @blueprint.route('/assets/<file_name>')
     def serve(file_name):
         logger.debug(f"Path: {file_name}")
@@ -124,6 +128,7 @@ class AISStreamPlugin(Plugin):
             return send_from_directory(dist, 'index.html')
 
     @staticmethod
+    @roles_accepted("administrator")
     @blueprint.route("/config")
     def config():
         config = {}
@@ -135,6 +140,7 @@ class AISStreamPlugin(Plugin):
         return jsonify(config)
 
     @staticmethod
+    @roles_accepted("administrator")
     @blueprint.route("/config", methods=["POST"])
     def update_config():
         try:

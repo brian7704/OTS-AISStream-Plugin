@@ -1,4 +1,3 @@
-import datetime
 import json
 import traceback
 import uuid
@@ -16,7 +15,7 @@ class WebsocketWrapper(RabbitMQClient):
     def __init__(self, app: Flask) -> None:
         super().__init__(app)
         self._config = {}
-        self._web_sock: WebSocketApp
+        self._web_sock: WebSocketApp | None = None
         self._shutdown = False
 
     # Inherited from RabbitMQClient
@@ -32,11 +31,12 @@ class WebsocketWrapper(RabbitMQClient):
         try:
             message = json.loads(message)
             cot = self.generate_cot(message)
-            body = {'uid': self._app.config.get("OTS_NODE_ID"), 'cot': tostring(cot).decode('utf-8')}
-            self.rabbit_channel.basic_publish(exchange='cot_controller', routing_key='',
-                                              body=json.dumps(body),
-                                              properties=pika.BasicProperties(
-                                                  expiration=self._app.config.get("OTS_RABBITMQ_TTL")))
+            with self._app.app_context():
+                body = {'uid': self._app.config.get("OTS_NODE_ID"), 'cot': tostring(cot).decode('utf-8')}
+                self.rabbit_channel.basic_publish(exchange='cot_controller', routing_key='',
+                                                  body=json.dumps(body),
+                                                  properties=pika.BasicProperties(
+                                                      expiration=self._app.config.get("OTS_RABBITMQ_TTL")))
         except BaseException as e:
             logger.error(f"message failed: {e}")
             logger.error(traceback.format_exc())
@@ -57,7 +57,8 @@ class WebsocketWrapper(RabbitMQClient):
         pass
 
     def stop(self):
-        self._web_sock.close()
+        if self._web_sock:
+            self._web_sock.close()
         self._shutdown = True
 
     def ws_thread(self, url: str, config: dict) -> None:

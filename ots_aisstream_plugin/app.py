@@ -25,24 +25,28 @@ class AISStreamPlugin(Plugin):
     def __init__(self):
         super().__init__()
         self._websocket_wrapper: WebsocketWrapper | None = None
+        self._ws_thread: threading.Thread | None = None
         self.load_metadata()
 
-    def activate(self, context: Flask):
+    def activate(self, context: Flask, enabled: bool = True):
         self._app = context
         self._load_config(DefaultConfig)
-        self._websocket_wrapper = WebsocketWrapper(app)
+        self._websocket_wrapper = WebsocketWrapper(self._app)
 
-        try:
-            _ws_thread = threading.Thread(
-                target=self._websocket_wrapper.ws_thread,
-                kwargs={"url": "wss://stream.aisstream.io/v0/stream", "config": self._config},
-            )
-            _ws_thread.start()
+        if enabled:
+            try:
+                self._ws_thread = threading.Thread(
+                    target=self._websocket_wrapper.ws_thread,
+                    kwargs={"url": "wss://stream.aisstream.io/v0/stream", "config": self._config},
+                )
+                self._ws_thread.start()
 
-            logger.info(f"Successfully Loaded {self.name}")
-        except BaseException as e:
-            logger.error(f"Failed to load {self.name}: {e}")
-            logger.error(traceback.format_exc())
+                logger.info(f"Successfully Loaded {self.name}")
+            except BaseException as e:
+                logger.error(f"Failed to load {self.name}: {e}")
+                logger.error(traceback.format_exc())
+        else:
+            logger.info(f"Plugin {self.name} is disabled")
 
     def load_metadata(self):
         try:
@@ -53,7 +57,7 @@ class AISStreamPlugin(Plugin):
                     self.distro = distro
                     info = importlib.metadata.metadata(self.distro)
                     self._metadata = info.json
-                    break
+                    return info.json
 
         except BaseException as e:
             logger.error(e)
@@ -78,6 +82,8 @@ class AISStreamPlugin(Plugin):
 
     def stop(self):
         self._websocket_wrapper.stop()
+        self._websocket_wrapper = None
+        self._ws_thread = None
 
     def get_info(self):
         self.load_metadata()

@@ -81,8 +81,9 @@ class AISStreamPlugin(Plugin):
                     self._app.config.update({key: value})
 
     def stop(self):
-        self._websocket_wrapper.stop()
-        self._websocket_wrapper = None
+        if self._websocket_wrapper:
+            self._websocket_wrapper.stop()
+            self._websocket_wrapper = None
         self._ws_thread = None
 
     def get_info(self):
@@ -91,28 +92,6 @@ class AISStreamPlugin(Plugin):
         return {'name': self.name, 'distro': self.distro, 'routes': self.routes}
 
     # Make route methods static to avoid "no-self-use" errors
-    @staticmethod
-    @roles_accepted("administrator")
-    @blueprint.route("/")
-    def plugin_info():  # Do not put "self" as a method parameter here
-        # This method will return JSON with info about the plugin derived from pyproject.toml, please do not change it
-        try:
-            distribution = None
-            distributions = importlib.metadata.packages_distributions()
-            for distro in distributions:
-                if str(__name__).startswith(distro):
-                    distribution = distributions[distro][0]
-                    break
-
-            if distribution:
-                info = importlib.metadata.metadata(distribution)
-                return jsonify(info.json)
-            else:
-                return jsonify({'success': False, 'error': 'Plugin not found'}), 404
-        except BaseException as e:
-            logger.error(e)
-            return jsonify({'success': False, 'error': e}), 500
-
     # OpenTAKServer's web UI will call your plugin's /ui endpoint and display the results
     @staticmethod
     @roles_accepted("administrator")

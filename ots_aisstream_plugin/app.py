@@ -30,7 +30,7 @@ class AISStreamPlugin(Plugin):
 
     def activate(self, context: Flask, enabled: bool = True):
         self._app = context
-        self._load_config(DefaultConfig)
+        self._load_config()
         self._websocket_wrapper = WebsocketWrapper(self._app)
 
         if enabled:
@@ -58,6 +58,8 @@ class AISStreamPlugin(Plugin):
                     info = importlib.metadata.metadata(self.distro)
                     self._metadata = info.json
                     return info.json
+            logger.error("RETURNING NOTHING")
+            return {}
 
         except BaseException as e:
             logger.error(e)

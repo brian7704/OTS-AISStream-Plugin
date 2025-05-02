@@ -61,10 +61,11 @@ class AISStreamPlugin(Plugin):
 
         except BaseException as e:
             logger.error(e)
+            return None
 
     # Loads default config and user config from ~/ots/config.yml
     # In most cases you don't need to change this
-    def _load_config(self, DefaultConfig):
+    def _load_config(self):
         # Gets default config key/value pairs from the plugin's default_config.py
         for key in dir(DefaultConfig):
             if key.isupper():

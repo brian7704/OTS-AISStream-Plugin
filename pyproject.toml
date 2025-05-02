@@ -1,12 +1,15 @@
 [project]
 name = "OTS-AISStream-Plugin"
-version = "0.0.0"
 description = "AISStream plugin for OpenTAKSserver"
 authors = [{name = "OpenTAKServer", email = "opentakserver@gmail.com"}]
 readme = "README.md"
 license = "GPL-3.0-or-later"
-dynamic = ["entry-points"]
+dynamic = ["entry-points", "version"]
 #packages = [{include = "ots_aisstream_plugin"}, {include = "ots_aisstream_plugin/**/*.py"}]
+
+[tool.poetry]
+requires-poetry = ">=2.0"
+version = "0.0.0"
 
 [project.urls]
 Repository = "https://github.com/brian7704/OTS-AISStream-Plugin"
@@ -24,7 +27,7 @@ style = "semver"
 dirty = false
 pattern = "((?P<epoch>\\d+)!)?(?P<base>\\d+(\\.\\d+)*)"
 
-[tool.poetry-dynamic-versioning.files."ots_aisstream_plugin/__init__.py"] # Change this line
+[tool.poetry-dynamic-versioning.files."ots_aisstream_plugin/__init__.py"]
 persistent-substitution = true
 initial-content = """
   # These version placeholders will be replaced later during substitution.

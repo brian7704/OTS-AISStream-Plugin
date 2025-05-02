@@ -57,9 +57,8 @@ class AISStreamPlugin(Plugin):
                     self.distro = distro
                     info = importlib.metadata.metadata(self.distro)
                     self._metadata = info.json
-                    return info.json
-            logger.error("RETURNING NOTHING")
-            return {}
+                    self._metadata['distro'] = distro
+                    return self._metadata
 
         except BaseException as e:
             logger.error(e)

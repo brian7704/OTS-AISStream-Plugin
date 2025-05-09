@@ -56,9 +56,9 @@ class AISStreamPlugin(Plugin):
                     self.name = distributions[distro][0]
                     self.distro = distro
                     info = importlib.metadata.metadata(self.distro)
-                    self._metadata = info.json
-                    self._metadata['distro'] = distro
-                    return self._metadata
+                    self.metadata = info.json
+                    self.metadata['distro'] = distro
+                    return self.metadata
 
         except BaseException as e:
             logger.error(e)

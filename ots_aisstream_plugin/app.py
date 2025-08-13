@@ -24,7 +24,6 @@ class AISStreamPlugin(Plugin):
 
     def __init__(self):
         super().__init__()
-        logger.info(f"Prefix is {self.url_prefix} metadata is {pathlib.Path(__file__).resolve().parent.name}")
         self._websocket_wrapper: WebsocketWrapper | None = None
         self._ws_thread: threading.Thread | None = None
         self.load_metadata()
@@ -48,22 +47,6 @@ class AISStreamPlugin(Plugin):
                 logger.error(traceback.format_exc())
         else:
             logger.info(f"Plugin {self.name} is disabled")
-
-    def load_metadata_old(self):
-        try:
-            distributions = importlib.metadata.packages_distributions()
-            for distro in distributions:
-                if str(__name__).startswith(distro):
-                    self.name = distributions[distro][0]
-                    self.distro = distro
-                    info = importlib.metadata.metadata(self.distro)
-                    self.metadata = info.json
-                    self.metadata['distro'] = distro
-                    return self.metadata
-
-        except BaseException as e:
-            logger.error(e)
-            return None
 
     def load_metadata(self):
         try:

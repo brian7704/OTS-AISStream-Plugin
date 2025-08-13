@@ -18,12 +18,13 @@ import importlib.metadata
 
 @dataclass
 class AISStreamPlugin(Plugin):
-    # Change the Blueprint name to YourPluginBlueprint
-    url_prefix = f"/api/plugins/{pathlib.Path(__file__).resolve().parent.name}"
+    metadata = pathlib.Path(__file__).resolve().parent.name
+    url_prefix = f"/api/plugins/{metadata.lower()}"
     blueprint = Blueprint("AISStreamPlugin", __name__, url_prefix=url_prefix)
 
     def __init__(self):
         super().__init__()
+        logger.info(f"Prefix is {self.url_prefix} metadata is {pathlib.Path(__file__).resolve().parent.name}")
         self._websocket_wrapper: WebsocketWrapper | None = None
         self._ws_thread: threading.Thread | None = None
         self.load_metadata()
@@ -48,7 +49,7 @@ class AISStreamPlugin(Plugin):
         else:
             logger.info(f"Plugin {self.name} is disabled")
 
-    def load_metadata(self):
+    def load_metadata_old(self):
         try:
             distributions = importlib.metadata.packages_distributions()
             for distro in distributions:
@@ -62,6 +63,18 @@ class AISStreamPlugin(Plugin):
 
         except BaseException as e:
             logger.error(e)
+            return None
+
+    def load_metadata(self):
+        try:
+            self.distro = pathlib.Path(__file__).resolve().parent.name
+            self.metadata = importlib.metadata.metadata(self.distro).json
+            self.name = self.metadata['name']
+            self.metadata['distro'] = self.distro
+            return self.metadata
+        except BaseException as e:
+            logger.error(e)
+            logger.debug(traceback.format_exc())
             return None
 
     # Loads default config and user config from ~/ots/config.yml

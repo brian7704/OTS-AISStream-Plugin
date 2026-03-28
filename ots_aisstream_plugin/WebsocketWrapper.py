@@ -4,6 +4,7 @@ import uuid
 
 from xml.etree.ElementTree import tostring
 import pika
+from pika.channel import Channel
 from websocket import WebSocketApp
 from opentakserver.extensions import logger
 from .cot_generator import *
@@ -21,7 +22,11 @@ class WebsocketWrapper(RabbitMQClient):
     # Inherited from RabbitMQClient
     def on_channel_open(self, channel):
         logger.debug("RabbitMQ Channel Opened")
-        self.rabbit_channel = channel
+        self.rabbit_channel: Channel = channel
+        logger.info(self._config)
+        channel.exchange_declare(
+            exchange=self._app.config.get("OTS_ADSB_GROUP"), exchange_type="fanout"
+        )
 
     # Inherited from RabbitMQClient
     def on_message(self, unused_channel, basic_deliver, properties, body):
@@ -29,14 +34,33 @@ class WebsocketWrapper(RabbitMQClient):
 
     def on_websocket_message(self, web_sock: WebSocketApp, message: str) -> None:
         try:
+            if self.rabbit_channel is None or not self.rabbit_channel.is_open:
+                logger.warning("RabbitMQ Channel Closed")
+                return
+
             message = json.loads(message)
             cot = self.generate_cot(message)
             with self._app.app_context():
                 body = {'uid': self._app.config.get("OTS_NODE_ID"), 'cot': tostring(cot).decode('utf-8')}
-                self.rabbit_channel.basic_publish(exchange='cot_controller', routing_key='',
-                                                  body=json.dumps(body),
+                self.rabbit_channel.basic_publish(exchange='cot_parser', routing_key='cot_parser',
+                                                  body=json.dumps(body).encode(),
                                                   properties=pika.BasicProperties(
                                                       expiration=self._app.config.get("OTS_RABBITMQ_TTL")))
+
+                self.rabbit_channel.basic_publish(
+                    exchange="groups",
+                    routing_key=f"{self._app.config.get('OTS_AIS_GROUP')}.OUT",
+                    body=json.dumps(body).encode(),
+                    properties=pika.BasicProperties(
+                        expiration=self._app.config.get("OTS_RABBITMQ_TTL")
+                    ),
+                )
+
+                self.rabbit_channel.basic_publish(exchange='firehose', routing_key='',
+                                                  body=json.dumps(body).encode(),
+                                                  properties=pika.BasicProperties(
+                                                  expiration=self._app.config.get("OTS_RABBITMQ_TTL")))
+
         except BaseException as e:
             logger.error(f"message failed: {e}")
             logger.error(traceback.format_exc())

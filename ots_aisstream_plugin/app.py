@@ -33,20 +33,21 @@ class AISStreamPlugin(Plugin):
         self._load_config()
         self._websocket_wrapper = WebsocketWrapper(self._app)
 
-        if enabled:
-            try:
-                self._ws_thread = threading.Thread(
-                    target=self._websocket_wrapper.ws_thread,
-                    kwargs={"url": "wss://stream.aisstream.io/v0/stream", "config": self._config},
-                )
-                self._ws_thread.start()
+        with self._app.app_context():
+            if enabled and self._app.config.get("OTS_AISSTREAM_PLUGIN_API_KEY") != "your_api_key" and self._app.config.get("OTS_AISSTREAM_PLUGIN_API_KEY") is not None:
+                try:
+                    self._ws_thread = threading.Thread(
+                        target=self._websocket_wrapper.ws_thread,
+                        kwargs={"url": "wss://stream.aisstream.io/v0/stream", "config": self._config},
+                    )
+                    self._ws_thread.start()
 
-                logger.info(f"Successfully Loaded {self.name}")
-            except BaseException as e:
-                logger.error(f"Failed to load {self.name}: {e}")
-                logger.error(traceback.format_exc())
-        else:
-            logger.info(f"Plugin {self.name} is disabled")
+                    logger.info(f"Successfully Loaded {self.name}")
+                except BaseException as e:
+                    logger.error(f"Failed to load {self.name}: {e}")
+                    logger.error(traceback.format_exc())
+            else:
+                logger.info(f"Plugin {self.name} is disabled or the API key is not set")
 
     def load_metadata(self):
         try:

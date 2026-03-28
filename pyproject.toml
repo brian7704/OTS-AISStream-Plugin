@@ -18,7 +18,7 @@ Documentation = "https://docs.opentakserver.io"
 [tool.poetry.dependencies]
 opentakserver = "*"
 python = ">=3.10, <4.0"
-websocket-client = "1.8.0"
+websocket-client = "*"
 
 [tool.poetry-dynamic-versioning]
 enable = true

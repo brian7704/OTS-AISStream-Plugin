@@ -41,11 +41,18 @@ class WebsocketWrapper(RabbitMQClient):
             message = json.loads(message)
             cot = self.generate_cot(message)
             with self._app.app_context():
-                body = {'uid': self._app.config.get("OTS_NODE_ID"), 'cot': tostring(cot).decode('utf-8')}
-                self.rabbit_channel.basic_publish(exchange='cot_parser', routing_key='cot_parser',
-                                                  body=json.dumps(body).encode(),
-                                                  properties=pika.BasicProperties(
-                                                      expiration=self._app.config.get("OTS_RABBITMQ_TTL")))
+                body = {
+                    "uid": self._app.config.get("OTS_NODE_ID"),
+                    "cot": tostring(cot).decode("utf-8"),
+                }
+                self.rabbit_channel.basic_publish(
+                    exchange="cot_parser",
+                    routing_key="cot_parser",
+                    body=json.dumps(body).encode(),
+                    properties=pika.BasicProperties(
+                        expiration=self._app.config.get("OTS_RABBITMQ_TTL")
+                    ),
+                )
 
                 self.rabbit_channel.basic_publish(
                     exchange="groups",
@@ -56,10 +63,14 @@ class WebsocketWrapper(RabbitMQClient):
                     ),
                 )
 
-                self.rabbit_channel.basic_publish(exchange='firehose', routing_key='',
-                                                  body=json.dumps(body).encode(),
-                                                  properties=pika.BasicProperties(
-                                                  expiration=self._app.config.get("OTS_RABBITMQ_TTL")))
+                self.rabbit_channel.basic_publish(
+                    exchange="firehose",
+                    routing_key="",
+                    body=json.dumps(body).encode(),
+                    properties=pika.BasicProperties(
+                        expiration=self._app.config.get("OTS_RABBITMQ_TTL")
+                    ),
+                )
 
         except BaseException as e:
             logger.error(f"message failed: {e}")
@@ -67,9 +78,11 @@ class WebsocketWrapper(RabbitMQClient):
 
     def on_websocket_open(self, web_sock: WebSocketApp) -> None:
         logger.info("AISStream websocket opened")
-        subscribe_message = {"APIKey": self._config.get("OTS_AISSTREAM_PLUGIN_API_KEY"),
-                             "BoundingBoxes": self._config.get("OTS_AISSTREAM_PLUGIN_BBOX"),
-                             "FilterMessageTypes": ["PositionReport"]}
+        subscribe_message = {
+            "APIKey": self._config.get("OTS_AISSTREAM_PLUGIN_API_KEY"),
+            "BoundingBoxes": self._config.get("OTS_AISSTREAM_PLUGIN_BBOX"),
+            "FilterMessageTypes": ["PositionReport"],
+        }
 
         subscribe_message_json = json.dumps(subscribe_message)
         web_sock.send(subscribe_message_json)
@@ -77,7 +90,9 @@ class WebsocketWrapper(RabbitMQClient):
     def on_websocket_error(self, web_sock: WebSocketApp, error_message: str) -> None:
         pass
 
-    def on_websocket_close(self, web_sock: WebSocketApp, close_status_code: int, close_msg: str) -> None:
+    def on_websocket_close(
+        self, web_sock: WebSocketApp, close_status_code: int, close_msg: str
+    ) -> None:
         pass
 
     def stop(self):
@@ -111,13 +126,28 @@ class WebsocketWrapper(RabbitMQClient):
             ship_name = metadata.get("ShipName") or ""
             ship_name = ship_name.strip()
             try:
-                timestamp = datetime.datetime.strptime(metadata.get("time_utc"), "%Y-%m-%d %H:%M:%S.%f %z %Z")
+                timestamp = datetime.datetime.strptime(
+                    metadata.get("time_utc"), "%Y-%m-%d %H:%M:%S.%f %z %Z"
+                )
             except ValueError:
                 timestamp = datetime.datetime.now(datetime.timezone.utc)
 
-            event = generate_event(timestamp, timestamp + datetime.timedelta(hours=1), mmsi, self._config.get("OTS_AISSTREAM_PLUGIN_COT_TYPE"), "m-g")
+            event = generate_event(
+                timestamp,
+                timestamp + datetime.timedelta(hours=1),
+                mmsi,
+                self._config.get("OTS_AISSTREAM_PLUGIN_COT_TYPE"),
+                "m-g",
+            )
             event = generate_point(event, lat, lon)
-            event = add_detail(event, "track", {"course": str(position_report.get("Cog")) or "0.0", "speed": str(position_report.get("Sog")) or "0.0"})
+            event = add_detail(
+                event,
+                "track",
+                {
+                    "course": str(position_report.get("Cog")) or "0.0",
+                    "speed": str(position_report.get("Sog")) or "0.0",
+                },
+            )
             event = add_detail(event, "contact", {"callsign": ship_name})
             event = add_detail(event, "remarks", {}, f"Name: {ship_name}, MMSI: {mmsi}")
             return event

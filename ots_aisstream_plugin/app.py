@@ -6,7 +6,14 @@ import traceback
 from dataclasses import dataclass
 
 import yaml
-from flask import Blueprint, send_from_directory, jsonify, Flask, current_app as app, request
+from flask import (
+    Blueprint,
+    send_from_directory,
+    jsonify,
+    Flask,
+    current_app as app,
+    request,
+)
 from flask_security import roles_accepted
 from opentakserver.plugins.Plugin import Plugin
 from opentakserver.extensions import *
@@ -34,11 +41,19 @@ class AISStreamPlugin(Plugin):
         self._websocket_wrapper = WebsocketWrapper(self._app)
 
         with self._app.app_context():
-            if enabled and self._app.config.get("OTS_AISSTREAM_PLUGIN_API_KEY") != "your_api_key" and self._app.config.get("OTS_AISSTREAM_PLUGIN_API_KEY") is not None:
+            if (
+                enabled
+                and self._app.config.get("OTS_AISSTREAM_PLUGIN_API_KEY")
+                != "your_api_key"
+                and self._app.config.get("OTS_AISSTREAM_PLUGIN_API_KEY") is not None
+            ):
                 try:
                     self._ws_thread = threading.Thread(
                         target=self._websocket_wrapper.ws_thread,
-                        kwargs={"url": "wss://stream.aisstream.io/v0/stream", "config": self._config},
+                        kwargs={
+                            "url": "wss://stream.aisstream.io/v0/stream",
+                            "config": self._config,
+                        },
                     )
                     self._ws_thread.start()
 
@@ -53,8 +68,8 @@ class AISStreamPlugin(Plugin):
         try:
             self.distro = pathlib.Path(__file__).resolve().parent.name
             self.metadata = importlib.metadata.metadata(self.distro).json
-            self.name = self.metadata['name']
-            self.metadata['distro'] = self.distro
+            self.name = self.metadata["name"]
+            self.metadata["distro"] = self.distro
             return self.metadata
         except BaseException as e:
             logger.error(e)
@@ -71,7 +86,9 @@ class AISStreamPlugin(Plugin):
                 self._app.config.update({key: getattr(DefaultConfig, key)})
 
         # Get user overrides from config.yml
-        with open(os.path.join(self._app.config.get("OTS_DATA_FOLDER"), "config.yml")) as yaml_file:
+        with open(
+            os.path.join(self._app.config.get("OTS_DATA_FOLDER"), "config.yml")
+        ) as yaml_file:
             yaml_config = yaml.safe_load(yaml_file)
             for key in self._config.keys():
                 value = yaml_config.get(key)
@@ -88,7 +105,7 @@ class AISStreamPlugin(Plugin):
     def get_info(self):
         self.load_metadata()
         self.get_plugin_routes(self.url_prefix)
-        return {'name': self.name, 'distro': self.distro, 'routes': self.routes}
+        return {"name": self.name, "distro": self.distro, "routes": self.routes}
 
     # Make route methods static to avoid "no-self-use" errors
     # OpenTAKServer's web UI will call your plugin's /ui endpoint and display the results
@@ -96,20 +113,28 @@ class AISStreamPlugin(Plugin):
     @roles_accepted("administrator")
     @blueprint.route("/ui")
     def ui():
-        return '', 200
+        return "", 200
 
     @staticmethod
     @roles_accepted("administrator")
-    @blueprint.route('/assets/<file_name>')
+    @blueprint.route("/assets/<file_name>")
     def serve(file_name):
         logger.debug(f"Path: {file_name}")
         dist = f"../{pathlib.Path(__file__).parent.resolve().name}/dist/assets"
-        logger.warning(os.path.join(pathlib.Path(__file__).parent.resolve(), "dist", "assets", file_name))
-        if file_name != "" and os.path.exists(os.path.join(pathlib.Path(__file__).parent.resolve(), "dist", "assets", file_name)):
+        logger.warning(
+            os.path.join(
+                pathlib.Path(__file__).parent.resolve(), "dist", "assets", file_name
+            )
+        )
+        if file_name != "" and os.path.exists(
+            os.path.join(
+                pathlib.Path(__file__).parent.resolve(), "dist", "assets", file_name
+            )
+        ):
             logger.info(f"Serving {file_name}")
             return send_from_directory(dist, file_name)
         else:
-            return send_from_directory(dist, 'index.html')
+            return send_from_directory(dist, "index.html")
 
     @staticmethod
     @roles_accepted("administrator")
